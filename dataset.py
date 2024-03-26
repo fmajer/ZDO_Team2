@@ -1,6 +1,8 @@
 from torch.utils.data import Dataset
-from load_data import load_anns_file, get_anns_dict, get_binary_mask, get_n_stitches
+from load_data import load_anns_file, get_anns_dict, get_binary_mask, get_n_stitches, threshold_img
 import matplotlib.pyplot as plt
+from skimage import color
+import numpy as np
 
 
 class IncisionDataset(Dataset):
@@ -22,13 +24,19 @@ class IncisionDataset(Dataset):
         return int(self.anns_file["annotations"]['meta']['task']['size'])
 
     def __getitem__(self, idx):
-        img = plt.imread(self.image_dir + self.anns_file["annotations"]["image"][idx]["@name"])
+        img = np.array(plt.imread(self.image_dir + self.anns_file["annotations"]["image"][idx]["@name"]))
+        gray_img = color.rgb2gray(img) * 255
+        thr_img = threshold_img(gray_img, 120)
+
         anns_dict = get_anns_dict(self.anns_file, idx)
         mask = get_binary_mask(img, anns_dict)
         n_stitches = get_n_stitches(anns_dict)
 
         if self.transform:
             img = self.transform(img)
+            gray_img = self.transform(gray_img)
+            thr_img = self.transform(thr_img)
+            mask = self.transform(mask)
 
-        return img, mask, n_stitches
+        return img, gray_img, thr_img, mask, n_stitches
 
