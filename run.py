@@ -1,46 +1,50 @@
-from load_data import load_anns_file, get_anns_dict, get_binary_mask, get_n_stitches, threshold_img
 from dataset import IncisionDataset
 import matplotlib.pyplot as plt
-from skimage import color
 from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
-
-anns_file = load_anns_file('data/annotations.xml')
-# print(anns_file["annotations"].keys())
-
-image_id = 0
-image = plt.imread('data/' + anns_file["annotations"]["image"][image_id]["@name"])
-gray_img = color.rgb2gray(image)*255
-thr_img = threshold_img(gray_img, 120)
-
-anns_dict = get_anns_dict(anns_file, image_id)
-mask = get_binary_mask(image, anns_dict)
-n_stitches = get_n_stitches(anns_dict)
-
-plt.imshow(image)
-plt.imshow(thr_img, cmap='gray')
-plt.imshow(mask, cmap='gray')
-# plt.show()
+from edge_detection import detect_edges
+from utilities import calculate_accuracy
 
 data_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Resize((50,180)),
-            ])
+    transforms.ToTensor(),
+    transforms.Resize((50, 180)),
+])
 
 incision_dataset = IncisionDataset(xml_file='data/annotations.xml',
                                    image_dir='data/',
-                                   transform=data_transform)
+                                   transform=None)
 
-for i, sample in enumerate(incision_dataset):
-    print(i, sample[0].shape, sample[1].shape, sample[2].shape, sample[3].shape, sample[4])
-    if i == 4:
-        break
+image_id = 5
+img, gray_img, thr_img, mask, n_stitches = incision_dataset.__getitem__(image_id)
 
+plt.imshow(gray_img, cmap='gray')
+plt.imshow(thr_img, cmap='gray')
+
+n_stitches_pred = detect_edges(gray_img)
+
+accuracy = calculate_accuracy(incision_dataset, detect_edges)
+print(f"Accuracy: {accuracy * 100:.2f}%")
+
+
+
+
+
+
+
+
+
+
+
+# -------------------------------------------------USELESS (for now)----------------------------------------------------
+
+# Split dataset into training and validation
 train_percentage = 0.8
 train_size = int(train_percentage * incision_dataset.__len__())
 val_size = incision_dataset.__len__() - train_size
 train_dataset, val_dataset = random_split(incision_dataset, [train_size, val_size])
 
-# batch_size = 2
-# train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
-# val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
+# Create dataloaders
+batch_size = 1
+train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
+val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
+# print(next(iter(train_dataloader))[0].shape)

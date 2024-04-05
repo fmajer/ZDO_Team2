@@ -1,8 +1,10 @@
+from load_data import load_anns_file, get_anns_dict, get_binary_mask, get_n_stitches
+from utilities import threshold_at_cumulative_value
 from torch.utils.data import Dataset
-from load_data import load_anns_file, get_anns_dict, get_binary_mask, get_n_stitches, threshold_img
 import matplotlib.pyplot as plt
-from skimage import color
 import numpy as np
+import cv2
+from skimage import color
 
 
 class IncisionDataset(Dataset):
@@ -25,8 +27,9 @@ class IncisionDataset(Dataset):
 
     def __getitem__(self, idx):
         img = np.array(plt.imread(self.image_dir + self.anns_file["annotations"]["image"][idx]["@name"]))
-        gray_img = color.rgb2gray(img) * 255
-        thr_img = threshold_img(gray_img, 120)
+        # gray_img = color.rgb2gray(img) * 255
+        gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        thr_img = threshold_at_cumulative_value(gray_img, 0.007)
 
         anns_dict = get_anns_dict(self.anns_file, idx)
         mask = get_binary_mask(img, anns_dict)

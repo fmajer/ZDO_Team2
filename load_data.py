@@ -14,6 +14,8 @@ def get_anns_dict(anns_file, image_id):
     img_dict = anns_file["annotations"]["image"][image_id]
     if "polyline" not in img_dict:
         return {}
+    if type(img_dict["polyline"]) is not list:
+        img_dict["polyline"] = [img_dict["polyline"]]
     for pline in img_dict["polyline"]:
         pts = np.array([pt.split(",") for pt in pline["@points"].split(";")], dtype=float)
         if pline["@label"] in anns_dict:
@@ -50,7 +52,3 @@ def get_binary_mask(image, anns_dict):
     cv2.polylines(mask3, [draw_points], False, (255,255,255))
     """
     return mask
-
-
-def threshold_img(image, threshold):
-    return (image < threshold).astype(np.uint8)
