@@ -2,7 +2,7 @@ from dataset import IncisionDataset
 import matplotlib.pyplot as plt
 from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
-from edge_detection import detect_edges
+from methods import detect_edges
 from utilities import calculate_accuracy
 
 data_transform = transforms.Compose([
