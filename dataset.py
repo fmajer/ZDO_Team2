@@ -29,7 +29,7 @@ class IncisionDataset(Dataset):
         img = np.array(plt.imread(self.image_dir + self.anns_file["annotations"]["image"][idx]["@name"]))
         # gray_img = color.rgb2gray(img) * 255
         gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        thr_img = threshold_at_cumulative_value(gray_img, 0.007)
+        thr_img = threshold_at_cumulative_value(gray_img, 0.01)
 
         anns_dict = get_anns_dict(self.anns_file, idx)
         mask = get_binary_mask(img, anns_dict)

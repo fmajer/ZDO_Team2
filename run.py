@@ -2,7 +2,7 @@ from dataset import IncisionDataset
 import matplotlib.pyplot as plt
 from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
-from methods import detect_edges
+from methods import detect_edges, create_feature_vector
 from utilities import calculate_accuracy
 
 data_transform = transforms.Compose([
@@ -14,16 +14,17 @@ incision_dataset = IncisionDataset(xml_file='data/annotations.xml',
                                    image_dir='data/',
                                    transform=None)
 
-image_id = 5
+image_id = 0
 img, gray_img, thr_img, mask, n_stitches = incision_dataset.__getitem__(image_id)
 
 plt.imshow(gray_img, cmap='gray')
 plt.imshow(thr_img, cmap='gray')
 
 n_stitches_pred = detect_edges(gray_img)
+# accuracy = calculate_accuracy(incision_dataset, detect_edges)
+# print(f"Accuracy: {accuracy * 100:.2f}%")
 
-accuracy = calculate_accuracy(incision_dataset, detect_edges)
-print(f"Accuracy: {accuracy * 100:.2f}%")
+# create_feature_vector(gray_img)
 
 
 

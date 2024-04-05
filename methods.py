@@ -3,6 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import skimage
 import scipy
+from skimage.morphology import skeletonize, thin
+from skimage.util import invert
+from scipy import ndimage
+from skimage.segmentation import active_contour
+from skimage.filters import gaussian
 
 
 def detect_edges(img):
@@ -33,7 +38,30 @@ def detect_edges(img):
     return len(long_contours)
 
 
-# create function that skeletonize, remove small objects, remove small holes, and thin the edges
+def create_feature_vector(img):
+    img_inv = invert(img)
+    skeleton = skeletonize(img_inv, method='lee')
+
+    x = np.linspace(5, 424, 100)
+    y = np.linspace(136, 50, 100)
+    init = np.array([x, y]).T
+
+    cntr = active_contour(gaussian(img, 1), init,
+                          alpha=0.1, beta=1.0, w_line=-5, w_edge=0, gamma=0.1)
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.imshow(img, cmap=plt.cm.gray)
+    ax.plot(init[:, 0], init[:, 1], '--r', lw=3)
+    ax.plot(cntr[:, 0], cntr[:, 1], '-b', lw=3)
+    ax.set_xticks([]), ax.set_yticks([])
+    ax.axis([0, img.shape[1], img.shape[0], 0])
+
+    plt.show()
+
+    # imlabel = skimage.measure.label(skeleton)
+    # plt.imshow(imlabel, cmap='gray')
+    # plt.show()
+
 
 
 
