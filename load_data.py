@@ -29,15 +29,15 @@ def get_anns_dict(anns_file, image_id):
 
 def get_n_stitches(anns_dict):
     try:
-        return len(anns_dict['Stitch'])
+        return len(anns_dict["Stitch"])
     except KeyError:
-        return -1
+        return 0
 
 
 def get_binary_mask(image, anns_dict):
     mask = np.zeros(image.shape[:2], dtype=np.uint8)
     for key, coords_list in anns_dict.items():
-        if key == 'Stitch':
+        if key == "Stitch":
             color = 125
         else:
             color = 255
