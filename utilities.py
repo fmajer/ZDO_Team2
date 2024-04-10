@@ -10,7 +10,7 @@ def basic_threshold_img(image, threshold):
 
 
 def automatic_threshold_img(image):
-    # set threshold automatically based on histogram using Otsu's binarization
+    # Set threshold automatically based on histogram using Otsu's binarization
     _, thresholded_image = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     return thresholded_image
 
@@ -41,7 +41,7 @@ def color_quantization(image, color_count):
     image = image.reshape((image.shape[0] * image.shape[1], 3))
     # apply k-means using the specified number of clusters and
     # then create the quantized image based on the predictions
-    clt = MiniBatchKMeans(n_clusters=color_count)
+    clt = MiniBatchKMeans(n_clusters=color_count, n_init='auto')
     labels = clt.fit_predict(image)
     quant = clt.cluster_centers_.astype("uint8")[labels]
     # reshape the feature vectors to images
@@ -79,7 +79,7 @@ def color_with_most_lines(image):
         #     plt.axline((x0, y0), slope=np.tan(angle + np.pi / 2))
 
     i = np.argmin(line_counts)
-    print(line_counts)
+    # print(line_counts)
     # plt.subplot(len(colors) * 2 + 1, 1, 2 * i + 1 + 1)
     # plt.scatter(5, 5, c=[[1, 0, 0]])
     # plt.show()

@@ -31,8 +31,9 @@ class IncisionDataset(Dataset):
         gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         thr_img = threshold_at_cumulative_value(gray_img, 0.01)
 
-        quantized_mask = color_quantization(img, 3)
-        quantized_mask = color_with_most_lines(quantized_mask)
+        # quantized_mask = color_quantization(img, 3)
+        # quantized_mask = color_with_most_lines(quantized_mask)
+        quantized_mask = img
 
         anns_dict = get_anns_dict(self.anns_file, idx)
         mask = get_binary_mask(img, anns_dict)
