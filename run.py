@@ -12,7 +12,7 @@ import numpy as np
 data_transform = transforms.Compose(
     [
         transforms.ToTensor(),
-        transforms.Resize(size=(50,180)),
+        transforms.Resize(size=(50, 180)),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
         transforms.RandomRotation(degrees=(0, 10)),
@@ -81,6 +81,3 @@ print(f"Neural network - accuracy: {calculate_accuracy(val_dataset, nn.predict) 
 #         plt.imshow(d[2])
 
 # plt.show()
-
-
-

@@ -41,7 +41,7 @@ def color_quantization(image, color_count):
     image = image.reshape((image.shape[0] * image.shape[1], 3))
     # apply k-means using the specified number of clusters and
     # then create the quantized image based on the predictions
-    clt = MiniBatchKMeans(n_clusters=color_count, n_init='auto')
+    clt = MiniBatchKMeans(n_clusters=color_count, n_init="auto")
     labels = clt.fit_predict(image)
     quant = clt.cluster_centers_.astype("uint8")[labels]
     # reshape the feature vectors to images
