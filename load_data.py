@@ -34,7 +34,7 @@ def get_n_stitches(anns_dict):
         return 0
 
 
-def get_binary_mask(image, anns_dict):
+def get_mask(image, anns_dict):
     mask = np.zeros(image.shape[:2], dtype=np.uint8)
     for key, coords_list in anns_dict.items():
         if key == "Stitch":
@@ -44,10 +44,7 @@ def get_binary_mask(image, anns_dict):
         for pts in coords_list:
             for i in range(len(pts) - 1):
                 cv2.line(mask, tuple(pts[i].astype(np.uint8)), tuple(pts[i + 1].astype(np.uint8)), color, 1)
-    """ Second option
-    # z = np.polyfit(pts[:,0], pts[:,1], 3)
-    # x = pts[:,0]
-    # y = np.polyval(z, x)
+    """ Second option to draw lines
     draw_points = (np.asarray([pts[:,0], pts[:,1]]).T).astype(np.int32)
     cv2.polylines(mask3, [draw_points], False, (255,255,255))
     """

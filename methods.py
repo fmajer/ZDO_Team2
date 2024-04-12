@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import skimage
 import scipy
 from skimage.morphology import skeletonize, thin
-from skimage.util import invert
+from skimage.util import invert, img_as_float
 from scipy import ndimage
 from skimage.segmentation import active_contour
 from skimage.filters import gaussian
@@ -19,6 +19,11 @@ def random_lul(mean: float, std: float, img):
 
 
 def detect_edges(img):
+    # gray_img = color.rgb2gray(img) * 255
+    gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    # thr_img = threshold_at_cumulative_value(gray_img, 0.01)
+    # thr_img = cv2.adaptiveThreshold(gray_img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
     edges = cv2.Canny(img, 50, 200)
 
     kernel = np.ones((2, 3), np.uint8)
@@ -74,22 +79,22 @@ def detect_edges_2(img):
     return len(long_contours)
 
 
-def create_feature_vector(img):
-    img_inv = invert(img)
+def create_feature_vector(gray_img):
+    img_inv = invert(gray_img)
     skeleton = skeletonize(img_inv, method="lee")
 
     x = np.linspace(5, 424, 100)
     y = np.linspace(136, 50, 100)
     init = np.array([x, y]).T
 
-    cntr = active_contour(gaussian(img, 1), init, alpha=0.1, beta=1.0, w_line=-5, w_edge=0, gamma=0.1)
+    cntr = active_contour(gaussian(gray_img, 1), init, alpha=0.1, beta=1.0, w_line=-5, w_edge=0, gamma=0.1)
 
     fig, ax = plt.subplots(figsize=(9, 5))
-    ax.imshow(img, cmap=plt.cm.gray)
+    ax.imshow(gray_img, cmap=plt.cm.gray)
     ax.plot(init[:, 0], init[:, 1], "--r", lw=3)
     ax.plot(cntr[:, 0], cntr[:, 1], "-b", lw=3)
     ax.set_xticks([]), ax.set_yticks([])
-    ax.axis([0, img.shape[1], img.shape[0], 0])
+    ax.axis([0, gray_img.shape[1], gray_img.shape[0], 0])
 
     plt.show()
 

@@ -93,20 +93,8 @@ def calculate_accuracy(dataset, function):
     correct = 0
     total = 0
     for i, sample in enumerate(dataset):
-        img, gray_img, thr_img, _, mask, n_stitches = sample
+        img, mask, n_stitches = sample
         n_stitches_pred = function(img)
-        if n_stitches == n_stitches_pred:
-            correct += 1
-        total += 1
-    return correct / total
-
-
-def calculate_accuracy_2(dataset, function):
-    correct = 0
-    total = 0
-    for i, sample in enumerate(dataset):
-        img, gray_img, thr_img, quantized_mask, mask, n_stitches = sample
-        n_stitches_pred = function(quantized_mask)
         if n_stitches == n_stitches_pred:
             correct += 1
         total += 1

@@ -1,6 +1,7 @@
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+from torchvision import transforms
+import copy
 
 
 class ConvNet(nn.Module):
@@ -28,33 +29,46 @@ class ConvNet(nn.Module):
         x = self.fc3(x)
         return x
 
+    def predict(self, img):
+        resize_img = transforms.Resize(size=(50, 180))
+        img_tensor = resize_img(torch.from_numpy(img).permute(2, 0, 1)).type(torch.float32)
+        outputs = self.forward(img_tensor.unsqueeze(0))
+        _, predicted = torch.max(outputs.data, 1)
+        return predicted.item()
 
-def detect_with_nn(incision_dataset, train_dataloader, val_dataloader, train_size, val_size):
 
+def load_nn(path):
     model = ConvNet()
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    model.load_state_dict(torch.load(path))
+    model.eval()
+    return model
 
-    n_epochs = 50
+
+def train_nn(incision_dataset, train_dataloader, val_dataloader, train_size, val_size, device, save_path):
+
+    n_epochs = 250
+    learning_rate = 0.001
+
+    model = ConvNet().to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
     n_images = 5
     # train_on_n_images(n_epochs, n_images, incision_dataset, optimizer, model, criterion)
-    # validate_on_n_images(n_images, incision_dataset, model, criterion)
+    # validate_on_n_images(n_images, incision_dataset, model)
 
-    # train_model(n_epochs, train_size, train_dataloader, optimizer, model, criterion)
-    # torch.save(model.state_dict(), "model.pth")
-    model = ConvNet()
-    model.load_state_dict(torch.load("model.pth"))
-    model.eval()
+    best_m = train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader, optimizer, model, criterion)
+
+    torch.save(best_m.state_dict(), save_path)
     # total_params = sum(p.numel() for p in model.parameters())
     # print(f"Number of parameters: {total_params}")
-    validate_model(val_size, val_dataloader, model, criterion)
 
 
 def train_on_n_images(n_epochs, n_images, incision_dataset, optimizer, model, criterion):
     for epoch in range(n_epochs):
         losses = []
         for j in range(n_images):
-            img, gray_img, thr_img, quantized_mask, mask, n_stitches = incision_dataset.__getitem__(j)
+            img, mask, n_stitches = incision_dataset.__getitem__(j)
             optimizer.zero_grad()
             outputs = model(img.unsqueeze(0))
             loss = criterion(outputs, torch.tensor([n_stitches], dtype=torch.long))
@@ -67,29 +81,42 @@ def train_on_n_images(n_epochs, n_images, incision_dataset, optimizer, model, cr
     print("Finished training")
 
 
-def validate_on_n_images(n_images, incision_dataset, model, criterion):
+def validate_on_n_images(n_images, incision_dataset, model):
     with torch.no_grad():
         for j in range(n_images):
-            img, gray_img, thr_img, quantized_mask, mask, n_stitches = incision_dataset.__getitem__(j)
+            img, mask, n_stitches = incision_dataset.__getitem__(j)
             outputs = model(img.unsqueeze(0))
-            loss = criterion(outputs, torch.tensor([n_stitches], dtype=torch.long))
-            # print(f"Predicted idx: {outputs.squeeze().argmax()}, Predicted val: {outputs.squeeze().max()}, Actual: {n_stitches}")
+            # print(f"Predicted idx: {outputs.squeeze().argmax()}, "
+            #       f"Predicted val: {outputs.squeeze().max()}, Actual: {n_stitches}")
             print(f"Predicted: {outputs.squeeze().argmax()}, Actual: {n_stitches}")
 
 
-def train_model(n_epochs, train_size, train_dataloader, optimizer, model, criterion):
+def train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader, optimizer, model, criterion):
+    best_val_loss = float('inf')
+    best_model = None
+
     for epoch in range(n_epochs):
         total_loss = 0
         for i, data in enumerate(train_dataloader):
-            img, gray_img, thr_img, quantized_mask, mask, n_stitches = data
+            img, mask, n_stitches = data
             optimizer.zero_grad()
             outputs = model(img)
-            loss = criterion(outputs, torch.tensor([n_stitches], dtype=torch.long))
+            loss = criterion(outputs, n_stitches)
+            # loss = criterion(outputs, torch.tensor([n_stitches], dtype=torch.long)) # for batch_size=1
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
-        print(f"Epoch {epoch + 1}, loss: {total_loss / train_size}")
+
+        val_loss, accuracy = validate_model(val_size, val_dataloader, model, criterion)
+        print(f"Epoch {epoch + 1}, train loss: {(total_loss / train_size):.5f}, "
+              f"val loss: {val_loss:.5f}, accuracy: {accuracy * 100:.2f}%")
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_model = copy.deepcopy(model)
+
     print("Finished training")
+    return best_model
 
 
 def validate_model(val_size, val_dataloader, model, criterion):
@@ -97,16 +124,18 @@ def validate_model(val_size, val_dataloader, model, criterion):
     correct_predictions = 0
     with torch.no_grad():
         for i, data in enumerate(val_dataloader):
-            img, gray_img, thr_img, quantized_mask, mask, n_stitches = data
-            # plt.imshow(img.squeeze().permute(1, 2, 0).numpy())
-            # plt.show()
+            img, mask, n_stitches = data
             outputs = model(img)
             _, predicted = torch.max(outputs.data, 1)
             correct_predictions += (predicted == n_stitches).sum().item()
-            print(f"Predicted: {outputs.squeeze().argmax().item()}, Actual: {n_stitches.item()}")
-            loss = criterion(outputs, torch.tensor([n_stitches], dtype=torch.long))
+            loss = criterion(outputs, n_stitches)
+            # loss = criterion(outputs, torch.tensor([n_stitches], dtype=torch.long)) # for batch_size=1
             total_loss += loss.item()
+            # print(f"Predicted: {outputs.squeeze().argmax().item()}, Actual: {n_stitches.item()}")
+            # plt.imshow(img.squeeze().permute(1, 2, 0).numpy())
+            # plt.show()
     accuracy = correct_predictions / val_size
-    print(f"Validation loss: {total_loss / val_size}")
-    print(f"Accuracy: {accuracy * 100:.2f}%")
+    # print(f"Validation loss: {total_loss / val_size}")
+    # print(f"Accuracy: {accuracy * 100:.2f}%")
+    return total_loss / val_size, accuracy
 
