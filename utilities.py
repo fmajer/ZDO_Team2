@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import MiniBatchKMeans
 import skimage
+from skimage.morphology import skeletonize
 
 
 def basic_threshold_img(image, threshold):
@@ -36,20 +37,108 @@ def threshold_at_cumulative_value(image, diff_threshold):
     return (image < threshold).astype(np.uint8)
 
 
+def test_2(image):
+    grayscale = skimage.color.rgb2gray(image)
+    diameter = 2
+    template = (255 * np.ones([4 * diameter, 4 * diameter])).astype("uint8")
+    rr, cc = skimage.draw.disk((template.shape[0] / 2, template.shape[1] / 2), diameter / 2)
+    template[rr, cc] = 0
+
+    # template = (np.zeros([20, 3])).astype("uint8")
+    # template[:, 1] = 255
+
+    result = skimage.feature.match_template(grayscale, template)
+
+    ij = np.unravel_index(np.argmax(result), result.shape)
+    x, y = ij[::-1]
+
+    plt.figure()
+    plt.imshow(grayscale)
+    plt.figure()
+    plt.imshow(template)
+    plt.figure()
+    plt.imshow(result)
+
+    result[result < 0.3] = 0
+    plt.figure()
+    plt.imshow(result)
+
+    plt.show()
+
+
+def test_1(image):
+    image = (255 * skimage.color.gray2rgb(skimage.color.rgb2gray(image))).astype(np.uint8)
+    # plt.figure()
+    # plt.imshow(image)
+
+    color_quantized_image = color_quantization(image, 3)
+    color = color_quantized_image[0]
+    count = np.sum(np.concatenate(np.all(color_quantized_image == color, axis=-1)))
+    original_img = image
+
+    # plt.figure()
+    # for index, i in enumerate(np.linspace(0, 2, 50)):
+
+    #     color_quantized_image = color_quantization(image, 3)
+    #     color = color_quantized_image[0]
+    #     new_count = np.sum(np.concatenate(np.all(color_quantized_image == color, axis=-1)))
+
+    #     print(count, "->", new_count)
+    #     count = new_count
+    #     plt.subplot(5, 10, index + 1)
+    #     plt.imshow(color_quantized_image)
+    #     image = skimage.exposure.adjust_gamma(original_img, i)
+
+    # plt.show()
+    # plt.figure()
+    # plt.imshow(color_quantized_image)
+    color_with_most_lines_as_img = color_with_most_lines(color_quantized_image)
+    # plt.figure()
+    # plt.imshow(color_with_most_lines_as_img)
+
+    # plt.show()
+    colors = np.unique(color_with_most_lines_as_img)
+    assert len(colors) == 2
+
+    b = skimage.morphology.area_closing(color_with_most_lines_as_img, 5, 2)
+    # edges = skimage.feature.canny(b, 2, 1, 25)
+
+    skelet = skeletonize(b)
+
+    lines = skimage.transform.probabilistic_hough_line(skelet, threshold=5, line_length=5, line_gap=3)
+    gray = np.zeros(color_with_most_lines_as_img.shape, dtype=np.uint8)
+
+    for line in lines:
+        p0, p1 = line
+        cv2.line(gray, (p0[0], p0[1]), (p1[0], p1[1]), 255)
+
+    # skelet = np.array((skimage.morphology.skeletonize(b) * 255), dtype="uint8")
+    # minLineLength = 15
+    # lines = cv2.HoughLinesP(image=skelet, rho=0.2, theta=np.pi / 360, threshold=10, lines=np.array([]), minLineLength=minLineLength, maxLineGap=80)
+
+    # if lines is not None:
+    #     a, b, c = lines.shape
+    #     print(lines.shape)
+    #     for i in range(a):
+    #         cv2.line(gray, (lines[i][0][0], lines[i][0][1]), (lines[i][0][2], lines[i][0][3]), (255), 1, cv2.LINE_AA)
+
+    return (image, color_with_most_lines_as_img, b, skelet, gray)
+
+
 def color_quantization(image, color_count):
     (h, w) = image.shape[:2]
     image = image.reshape((image.shape[0] * image.shape[1], 3))
     # apply k-means using the specified number of clusters and
     # then create the quantized image based on the predictions
-    clt = MiniBatchKMeans(n_clusters=color_count, n_init="auto")
+
+    initial_centers = np.linspace([0, 0, 0], [255, 255, 255], color_count, endpoint=True)
+    clt = MiniBatchKMeans(n_clusters=color_count, init=initial_centers, n_init="auto")
     labels = clt.fit_predict(image)
     quant = clt.cluster_centers_.astype("uint8")[labels]
     # reshape the feature vectors to images
     quant = quant.reshape((h, w, 3))
-    image = image.reshape((h, w, 3))
     # convert from L*a*b* to RGB
     quant = cv2.cvtColor(quant, cv2.COLOR_LAB2BGR)
-    image = cv2.cvtColor(image, cv2.COLOR_LAB2BGR)
 
     return quant
 
@@ -99,3 +188,12 @@ def calculate_accuracy(dataset, function):
             correct += 1
         total += 1
     return correct / total
+
+
+def plot_images(images: list[any], rows: int, columns: int) -> None:
+    plt.figure()
+
+    for i, img in enumerate(images):
+        plt.subplot(rows, columns, i + 1)
+        plt.imshow(img)
+    pass
