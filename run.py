@@ -1,3 +1,6 @@
+from glob import glob
+import random
+from typing import Callable
 from dataset import IncisionDataset
 import torch
 from torch.utils.data import random_split, DataLoader
@@ -5,7 +8,7 @@ from torchvision import transforms
 from methods import detect_edges, create_feature_vector, detect_edges_2, random_lul
 import matplotlib.pyplot as plt
 from neural_network import train_nn, load_nn
-from utilities import calculate_accuracy
+from utilities import calculate_accuracy, color_quantization, plot_images, test_1, test_2
 import numpy as np
 
 # Define data transformations
@@ -15,17 +18,35 @@ data_transform = transforms.Compose(
         transforms.Resize(size=(50, 180)),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
-        transforms.RandomRotation(degrees=(0, 10)),
+        transforms.RandomRotation(degrees=(-5, 5)),
         transforms.RandomPerspective(distortion_scale=0.1, p=0.5),
         transforms.RandomAutocontrast(),
+        transforms.ColorJitter(brightness=0.2, contrast=0.3, hue=0.1),
     ]
 )
 
-# Create dataset
-incision_dataset = IncisionDataset(xml_file="data/annotations.xml", image_dir="data/", transform=None)
+train = False
 
+# Create dataset
+incision_dataset = IncisionDataset(xml_file="data/annotations.xml", image_dir="data/", transform=data_transform if train else None)
+
+# data = [test_2(incision_dataset.__getitem__(i)[0]) for i in range(8*10)]
+# data = [test_1(incision_dataset.__getitem__(i)[0]) for i in range(8*10)]
+# plot_images([d[0] for d in data], 8, 10)
+# plot_images([d[1] for d in data], 8, 10)
+# plot_images([d[2] for d in data], 8, 10)
+# plot_images([d[3] for d in data], 8, 10)
+# plot_images([d[4] for d in data], 8, 10)
+# plt.show()
+
+# plot_images([preprocess_image(incision_dataset.__getitem__(i)[0])[1] for i in range(8*10)], 8, 10)
+# a = incision_dataset.__getitem__(0)[0].cpu().numpy()
+# a = a, 0, -1)
+# plot_images([np.moveaxis(incision_dataset.__getitem__(i)[0].cpu().numpy(), 0, -1) for i in range(8*10)], 8, 10)
+# plt.show()
 # Split dataset into training and validation
-seed = 100
+# seed = random.randint(0, 10000)
+seed = 9999
 train_percentage = 0.9
 generator = torch.Generator().manual_seed(seed)
 train_size = int(train_percentage * incision_dataset.__len__())
@@ -44,15 +65,20 @@ img, mask, n_stitches = incision_dataset.__getitem__(image_id)
 
 # Train or load neural network
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-path_to_nn = f"trained_nn/neural_network_seed_{seed}.pth"
-# train_nn(incision_dataset, train_dataloader, val_dataloader, train_size, val_size, device, path_to_nn)
-nn = load_nn(path_to_nn)
 
-# Try various detection methods
-nn_stitches_pred = nn.predict(img)
-edges_stitches_pred = detect_edges(img)
-print(f"Edge detector - accuracy: {calculate_accuracy(val_dataset, detect_edges) * 100:.2f}%")
-print(f"Neural network - accuracy: {calculate_accuracy(val_dataset, nn.predict) * 100:.2f}%")
+
+if train:
+    path_to_nn_func: Callable[[float], str] = lambda x: f"trained_nn/{x:.2f}_neural_network_seed_{seed}.pth"  # noqa: E731
+    train_nn(incision_dataset, train_dataloader, val_dataloader, train_size, val_size, device, path_to_nn_func)
+else:
+    path_to_nn = glob(f"trained_nn/*_neural_network_seed_{seed}.pth")[0]
+    nn = load_nn(path_to_nn)
+
+    # Try various detection methods
+    nn_stitches_pred = nn.predict(img)
+    edges_stitches_pred = detect_edges(img)
+    print(f"Edge detector - accuracy: {calculate_accuracy(incision_dataset, detect_edges) * 100:.2f}%")
+    print(f"Neural network - accuracy: {calculate_accuracy(incision_dataset, nn.predict) * 100:.2f}%")
 
 
 # Březina things

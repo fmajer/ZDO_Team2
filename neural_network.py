@@ -1,3 +1,4 @@
+from typing import Callable
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -44,8 +45,7 @@ def load_nn(path):
     return model
 
 
-def train_nn(incision_dataset, train_dataloader, val_dataloader, train_size, val_size, device, save_path):
-
+def train_nn(incision_dataset, train_dataloader, val_dataloader, train_size, val_size, device, path_func: Callable[[float], str]):
     n_epochs = 250
     learning_rate = 0.001
 
@@ -57,9 +57,9 @@ def train_nn(incision_dataset, train_dataloader, val_dataloader, train_size, val
     # train_on_n_images(n_epochs, n_images, incision_dataset, optimizer, model, criterion)
     # validate_on_n_images(n_images, incision_dataset, model)
 
-    best_m = train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader, optimizer, model, criterion)
+    best_m, accuracy = train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader, optimizer, model, criterion)
 
-    torch.save(best_m.state_dict(), save_path)
+    torch.save(best_m.state_dict(), path_func(accuracy))
     # total_params = sum(p.numel() for p in model.parameters())
     # print(f"Number of parameters: {total_params}")
 
@@ -92,7 +92,7 @@ def validate_on_n_images(n_images, incision_dataset, model):
 
 
 def train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader, optimizer, model, criterion):
-    best_val_loss = float('inf')
+    best_val_loss = float("inf")
     best_model = None
 
     for epoch in range(n_epochs):
@@ -108,18 +108,17 @@ def train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader
             total_loss += loss.item()
 
         val_loss, accuracy = validate_model(val_size, val_dataloader, model, criterion)
-        print(f"Epoch {epoch + 1}, train loss: {(total_loss / train_size):.5f}, "
-              f"val loss: {val_loss:.5f}, accuracy: {accuracy * 100:.2f}%")
+        print(f"Epoch {epoch + 1}, train loss: {(total_loss / train_size):.5f}, " f"val loss: {val_loss:.5f}, accuracy: {accuracy * 100:.2f}%")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_model = copy.deepcopy(model)
 
     print("Finished training")
-    return best_model
+    return best_model, accuracy
 
 
-def validate_model(val_size, val_dataloader, model, criterion):
+def validate_model(val_size, val_dataloader, model, criterion) -> tuple[float, float]:
     total_loss = 0
     correct_predictions = 0
     with torch.no_grad():
@@ -138,4 +137,3 @@ def validate_model(val_size, val_dataloader, model, criterion):
     # print(f"Validation loss: {total_loss / val_size}")
     # print(f"Accuracy: {accuracy * 100:.2f}%")
     return total_loss / val_size, accuracy
-
