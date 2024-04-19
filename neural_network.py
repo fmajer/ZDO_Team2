@@ -46,7 +46,7 @@ def load_nn(path):
 
 
 def train_nn(incision_dataset, train_dataloader, val_dataloader, train_size, val_size, device, path_func: Callable[[float], str]):
-    n_epochs = 250
+    n_epochs = 5
     learning_rate = 0.001
 
     model = ConvNet().to(device)

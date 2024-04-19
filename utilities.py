@@ -132,7 +132,8 @@ def color_quantization(image, color_count):
     # then create the quantized image based on the predictions
 
     initial_centers = np.linspace([0, 0, 0], [255, 255, 255], color_count, endpoint=True)
-    clt = MiniBatchKMeans(n_clusters=color_count, init=initial_centers, n_init="auto")
+    # clt = MiniBatchKMeans(n_clusters=color_count, init=initial_centers, n_init="auto")
+    clt = MiniBatchKMeans(n_clusters=color_count, n_init="auto")
     labels = clt.fit_predict(image)
     quant = clt.cluster_centers_.astype("uint8")[labels]
     # reshape the feature vectors to images
@@ -197,3 +198,20 @@ def plot_images(images: list[any], rows: int, columns: int) -> None:
         plt.subplot(rows, columns, i + 1)
         plt.imshow(img)
     pass
+
+
+def plot_a_lot_of_images(incision_dataset):
+    data = [test_2(incision_dataset.__getitem__(i)[0]) for i in range(8*10)]
+    data = [test_1(incision_dataset.__getitem__(i)[0]) for i in range(8*10)]
+    plot_images([d[0] for d in data], 8, 10)
+    plot_images([d[1] for d in data], 8, 10)
+    plot_images([d[2] for d in data], 8, 10)
+    plot_images([d[3] for d in data], 8, 10)
+    plot_images([d[4] for d in data], 8, 10)
+    plt.show()
+
+    # plot_images([preprocess_image(incision_dataset.__getitem__(i)[0])[1] for i in range(8*10)], 8, 10)
+    a = incision_dataset.__getitem__(0)[0].cpu().numpy()
+    a = (a, 0, -1)
+    plot_images([np.moveaxis(incision_dataset.__getitem__(i)[0].cpu().numpy(), 0, -1) for i in range(8*10)], 8, 10)
+    plt.show()

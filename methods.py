@@ -101,3 +101,5 @@ def create_feature_vector(gray_img):
     # imlabel = skimage.measure.label(skeleton)
     # plt.imshow(imlabel, cmap='gray')
     # plt.show()
+
+
