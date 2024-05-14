@@ -2,37 +2,17 @@ from skimage.feature import hog
 from skimage.transform import resize
 import matplotlib.pyplot as plt
 import skimage
-from sklearn.neural_network import MLPClassifier
-from sklearn.svm import SVC
-from sklearn.ensemble import GradientBoostingClassifier, AdaBoostClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from utilities import color_quantization, color_with_most_lines
+import pickle
+from utilities import train_classifiers, load_classifier, color_quantization, color_with_most_lines
 import numpy as np
 # https://github.com/BilalxAI/comaprison-of-CNN-and-HOG/blob/main/cnn%20vs%20hog.ipynb
 
 
-def train_hog_classifier(train_dataset, val_dataset):
+def train_hog_classifier(train_dataset, val_dataset, path_to_model):
     x_train_hog, y_train, x_val_hog, y_val = get_hog_features(train_dataset, val_dataset)
 
-    svm_classifier = SVC().fit(x_train_hog, y_train)
-    svm_accuracy = svm_classifier.score(x_val_hog, y_val)
-
-    gbc_clf = GradientBoostingClassifier(n_estimators=100, learning_rate=1.0,
-                                         max_depth=1, random_state=0).fit(x_train_hog, y_train)
-    gbc_accuracy = gbc_clf.score(x_val_hog, y_val)
-
-    kn_classifier = KNeighborsClassifier(n_neighbors=5, algorithm='brute').fit(x_train_hog, y_train)
-    kn_accuracy = kn_classifier.score(x_val_hog, y_val)
-
-    ada_clf = AdaBoostClassifier(n_estimators=100, random_state=0).fit(x_train_hog, y_train)
-    ada_accuracy = ada_clf.score(x_val_hog, y_val)
-
-    mlp_clf = MLPClassifier(hidden_layer_sizes=(100, 100), max_iter=1000).fit(x_train_hog, y_train)
-    mlp_accuracy = mlp_clf.score(x_val_hog, y_val)
-
     # Get best classifier based on accuracy and get its accuracy
-    classifiers = [(svm_classifier, svm_accuracy), (gbc_clf, gbc_accuracy), (kn_classifier, kn_accuracy),
-                      (ada_clf, ada_accuracy), (mlp_clf, mlp_accuracy)]
+    classifiers = train_classifiers(x_train_hog, y_train, x_val_hog, y_val)
     best_classifier = max(classifiers, key=lambda x: x[1])
     print(f"\nBest classifier: {best_classifier[0]} with accuracy: {best_classifier[1]}\n")
 
@@ -41,7 +21,17 @@ def train_hog_classifier(train_dataset, val_dataset):
     for classifier in classifiers:
         print(f"Classifier: {classifier[0]} with accuracy: {classifier[1]}")
 
-    return best_classifier[1]
+    # Save best classifier
+    with open(path_to_model, "wb") as f:
+        pickle.dump(best_classifier[0], f)
+
+
+def get_hog_classifier_accuracy(val_dataset, path_to_model):
+    x_val_hog, y_val = get_hog_features(val_dataset, val_dataset)[2:]
+
+    classifier = load_classifier(path_to_model)
+
+    return classifier.score(x_val_hog, y_val)
 
 
 # noinspection DuplicatedCode

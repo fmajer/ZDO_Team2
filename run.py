@@ -1,18 +1,20 @@
-import copy
 from glob import glob
-import random
 from typing import Callable
 from dataset import IncisionDataset
 import torch
 from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
-from methods import detect_edges, create_feature_vector, detect_edges_2, random_lul
-import matplotlib.pyplot as plt
+from hog_lbp_classification import train_lbp_hog_classifier
 from neural_network import train_nn, load_nn
-from utilities import calculate_accuracy, plot_images, test_1, test_2, plot_a_lot_of_images
+from hog_classification import train_hog_classifier
+from lbp_classification import train_lbp_classifier
+from utilities import calculate_accuracy, plot_images, test_1, test_2, plot_a_lot_of_images, load_classifier
 from utilities import color_quantization, color_with_most_lines
+from methods import detect_edges, detect_edges_2, random_lul, hough_vert_edge_detect
+import random
+import copy
 import numpy as np
-from hog_classification import train_hog_classifier, plot_img_and_hog
+import matplotlib.pyplot as plt
 
 # Define data transformations
 data_transform = transforms.Compose(
@@ -28,11 +30,14 @@ data_transform = transforms.Compose(
     ]
 )
 
-train = False
+# Parameters
+train_nn_param = False
+train_classifiers = False
+check_accuracy = False
 
 # Create dataset
 incision_dataset = IncisionDataset(xml_file="data/annotations.xml", image_dir="data/",
-                                   transform=data_transform if train else None)
+                                   transform=data_transform if train_nn_param else None)
 
 # Plot some images
 # plot_a_lot_of_images(incision_dataset)
@@ -50,29 +55,49 @@ train_dataset, val_dataset = random_split(incision_dataset, [train_size, val_siz
 batch_size = 4
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
 val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
-# print(next(iter(train_dataloader))[0].shape)
 
 # Get data sample with specified id
-image_id = 2
+image_id = 66
 img, mask, n_stitches = incision_dataset.__getitem__(image_id)
 
-# Train or load neural network
+# Initialize device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-if train:
-    path_to_nn_func: Callable[[float], str] = lambda x: f"trained_nn/{x:.2f}_neural_network_seed_{seed}.pth"  # noqa: E731
-    train_nn(incision_dataset, train_dataloader, val_dataloader, train_size, val_size, device, path_to_nn_func)
-else:
-    path_to_nn = glob(f"trained_nn/*_neural_network_seed_{seed}.pth")[0]
+# Train, check accuracy or predict for given images
+if train_nn_param:
+    n_epochs = 5
+    learning_rate = 0.001
+    path_to_nn_func: Callable[[float], str] = lambda x: f"trained_models/{x:.2f}_neural_network_seed_{seed}.pth"  # noqa: E731
+    train_nn(n_epochs, learning_rate, train_dataloader, val_dataloader, train_size, val_size, device, path_to_nn_func)
+
+elif train_classifiers:
+    train_hog_classifier(train_dataset, val_dataset, "trained_models/trained_hog_classifier.pkl")
+    train_lbp_classifier(train_dataset, val_dataset, "trained_models/trained_lbp_classifier.pkl")
+    train_lbp_hog_classifier(train_dataset, val_dataset, "trained_models/trained_hog_lbp_classifier.pkl")
+
+elif check_accuracy:
+    path_to_nn = glob(f"trained_models/*_neural_network_seed_{seed}.pth")[0]
+    path_to_hog = "trained_models/trained_hog_classifier.pkl"
+    path_to_lbp = "trained_models/trained_lbp_classifier.pkl"
+    path_to_hog_lbp = "trained_models/trained_hog_lbp_classifier.pkl"
     nn = load_nn(path_to_nn)
+    hog = load_classifier(path_to_hog)
+    lbp = load_classifier(path_to_lbp)
+    hog_lbp = load_classifier(path_to_hog_lbp)
 
     # Try various detection methods
-    nn_stitches_pred = nn.predict(img)
-    edges_stitches_pred = detect_edges(copy.deepcopy(img))
-    print(f"Edge detector - accuracy: {calculate_accuracy(incision_dataset, detect_edges) * 100:.2f}%")
-    print(f"Neural network - accuracy: {calculate_accuracy(incision_dataset, nn.predict) * 100:.2f}%")
+    # print(f"Edge detector - accuracy: {calculate_accuracy(incision_dataset, detect_edges) * 100:.2f}%")
+    # print(f"Neural network - accuracy: {calculate_accuracy(incision_dataset, nn.predict) * 100:.2f}%")
+    # print(f"HoG + Classifier - accuracy: {get_hog_classifier_accuracy(train_dataset, val_dataset) * 100:.2f}%")
+    # print(f"LBP + Classifier - accuracy: {train_lbp_classifier(train_dataset, val_dataset) * 100:.2f}%")
+else:
+    path_to_nn = glob(f"trained_models/*_neural_network_seed_{seed}.pth")[0]
+    nn = load_nn(path_to_nn)
 
-    print(f"HoG + Classifier - accuracy: {train_hog_classifier(train_dataset, val_dataset) * 100:.2f}%")
+    # nn_stitches_pred = nn.predict(img)
+    # edges_stitches_pred = detect_edges(copy.deepcopy(img))
+    # hough_vert_edge_detect(img)
+
 
 
 # Březina things

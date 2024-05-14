@@ -1,9 +1,15 @@
+import pickle
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import MiniBatchKMeans
 import skimage
 from skimage.morphology import skeletonize
+from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
+from sklearn.ensemble import GradientBoostingClassifier, AdaBoostClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 
 def basic_threshold_img(image, threshold):
@@ -201,8 +207,8 @@ def plot_images(images: list[any], rows: int, columns: int) -> None:
 
 
 def plot_a_lot_of_images(incision_dataset):
-    data = [test_2(incision_dataset.__getitem__(i)[0]) for i in range(8*10)]
-    data = [test_1(incision_dataset.__getitem__(i)[0]) for i in range(8*10)]
+    data = [test_2(incision_dataset.__getitem__(i)[0]) for i in range(8 * 10)]
+    data = [test_1(incision_dataset.__getitem__(i)[0]) for i in range(8 * 10)]
     plot_images([d[0] for d in data], 8, 10)
     plot_images([d[1] for d in data], 8, 10)
     plot_images([d[2] for d in data], 8, 10)
@@ -213,5 +219,33 @@ def plot_a_lot_of_images(incision_dataset):
     # plot_images([preprocess_image(incision_dataset.__getitem__(i)[0])[1] for i in range(8*10)], 8, 10)
     a = incision_dataset.__getitem__(0)[0].cpu().numpy()
     a = (a, 0, -1)
-    plot_images([np.moveaxis(incision_dataset.__getitem__(i)[0].cpu().numpy(), 0, -1) for i in range(8*10)], 8, 10)
+    plot_images([np.moveaxis(incision_dataset.__getitem__(i)[0].cpu().numpy(), 0, -1) for i in range(8 * 10)], 8, 10)
     plt.show()
+
+
+def train_classifiers(x_train_hog, y_train, x_val_hog, y_val):
+    svm_classifier = SVC().fit(x_train_hog, y_train)
+    svm_accuracy = svm_classifier.score(x_val_hog, y_val)
+
+    gbc_clf = GradientBoostingClassifier(n_estimators=100, learning_rate=1.0,
+                                         max_depth=1, random_state=0).fit(x_train_hog, y_train)
+    gbc_accuracy = gbc_clf.score(x_val_hog, y_val)
+
+    kn_classifier = KNeighborsClassifier(n_neighbors=5, algorithm='brute').fit(x_train_hog, y_train)
+    kn_accuracy = kn_classifier.score(x_val_hog, y_val)
+
+    ada_clf = AdaBoostClassifier(n_estimators=100, random_state=0).fit(x_train_hog, y_train)
+    ada_accuracy = ada_clf.score(x_val_hog, y_val)
+
+    mlp_clf = MLPClassifier(hidden_layer_sizes=(100, 100), max_iter=1000).fit(x_train_hog, y_train)
+    mlp_accuracy = mlp_clf.score(x_val_hog, y_val)
+
+    classifiers = [(svm_classifier, svm_accuracy), (gbc_clf, gbc_accuracy), (kn_classifier, kn_accuracy),
+                   (ada_clf, ada_accuracy), (mlp_clf, mlp_accuracy)]
+
+    return classifiers
+
+
+def load_classifier(path_to_model):
+    with open(path_to_model, "rb") as f:
+        return pickle.load(f)

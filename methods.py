@@ -3,11 +3,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import skimage
 import scipy
+from matplotlib import cm
+from scipy.ndimage import median_filter
 from skimage.morphology import skeletonize, thin
 from skimage.util import invert, img_as_float
 from scipy import ndimage
 from skimage.segmentation import active_contour
 from skimage.filters import gaussian
+from skimage.transform import (hough_line, hough_line_peaks,
+                               probabilistic_hough_line)
+from skimage.feature import canny
+from sklearn.cluster import DBSCAN
 
 
 def random_lul(mean: float, std: float, img):
@@ -79,27 +85,110 @@ def detect_edges_2(img):
     return len(long_contours)
 
 
-def create_feature_vector(gray_img):
-    img_inv = invert(gray_img)
-    skeleton = skeletonize(img_inv, method="lee")
+def hough_vert_edge_detect(img):
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    # edges = canny(img, 2, 1, 25)
+    edges = cv2.Canny(img, 100, 200)
 
-    x = np.linspace(5, 424, 100)
-    y = np.linspace(136, 50, 100)
-    init = np.array([x, y]).T
+    kernel = np.ones((3, 3), np.uint8)
+    edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+    edges = scipy.ndimage.binary_fill_holes(edges).astype(np.uint8)
+    # edges = skimage.morphology.thin(edges).astype(np.uint8)
 
-    cntr = active_contour(gaussian(gray_img, 1), init, alpha=0.1, beta=1.0, w_line=-5, w_edge=0, gamma=0.1)
+    kernel = np.ones((1, 4), np.uint8)
+    long_hor_edges = cv2.morphologyEx(edges, cv2.MORPH_OPEN, kernel)
+    edges = edges - long_hor_edges
 
-    fig, ax = plt.subplots(figsize=(9, 5))
-    ax.imshow(gray_img, cmap=plt.cm.gray)
-    ax.plot(init[:, 0], init[:, 1], "--r", lw=3)
-    ax.plot(cntr[:, 0], cntr[:, 1], "-b", lw=3)
-    ax.set_xticks([]), ax.set_yticks([])
-    ax.axis([0, gray_img.shape[1], gray_img.shape[0], 0])
+    kernel = np.ones((2, 2), np.uint8)
+    edges = cv2.dilate(edges, kernel, iterations=1)
+    edges = cv2.erode(edges, kernel, iterations=1)
 
+    # lines = probabilistic_hough_line(edges, threshold=10, line_length=20, line_gap=7)
+
+    tested_angles = np.linspace(np.deg2rad(-7), np.deg2rad(7), 360, endpoint=False)
+    h, theta, d = skimage.transform.hough_line(edges, theta=tested_angles)
+
+    # peaks = skimage.transform.hough_line_peaks(h, theta, d)
+    # for _, angle, dist in zip(*peaks):
+    #     (x0, y0) = dist * np.array([np.cos(angle), np.sin(angle)])
+    #     plt.axline((x0, y0), slope=np.tan(angle + np.pi / 2))
+    # plt.show()
+
+    plot_img_canny_hough(img, edges, lines=None, plot_hough=False)
     plt.show()
 
-    # imlabel = skimage.measure.label(skeleton)
-    # plt.imshow(imlabel, cmap='gray')
-    # plt.show()
+    plot_hough_line(img, h, theta, d)
+    plt.show()
+
+    find_representative_lines(edges, h, theta, d)
+
+
+def find_representative_lines(edges, h, theta, d):
+    distance_threshold = 0.5  # Adjust this threshold as needed
+
+    # Iterate over the lines and find out if they are close to each other
+    close_lines = []
+    for i in range(len(h)):
+        for j in range(i + 1, len(h)):
+            distance = np.sqrt((h[i] - h[j]) ** 2 + (theta[i] - theta[j]) ** 2)
+            if distance[0] < distance_threshold:
+                close_lines.append((i, j))
+    # dál to nemám a nefunguje to
+
+
+def plot_hough_line(img, h, theta, d):
+    fig, axes = plt.subplots(1, 3, figsize=(15, 6))
+    ax = axes.ravel()
+
+    ax[0].imshow(img, cmap=cm.gray)
+    ax[0].set_title('Input image')
+    ax[0].set_axis_off()
+
+    ax[1].imshow(np.log(1 + h),
+                 extent=[np.rad2deg(theta[-1]), np.rad2deg(theta[0]), d[-1], d[0]],
+                 cmap=cm.gray, aspect=1 / 1.5)
+    ax[1].set_title('Hough transform')
+    ax[1].set_xlabel('Angles (degrees)')
+    ax[1].set_ylabel('Distance (pixels)')
+    ax[1].axis('image')
+
+    ax[2].imshow(img, cmap=cm.gray)
+    origin = np.array((0, img.shape[1]))
+    for _, angle, dist in zip(*hough_line_peaks(h, theta, d)):
+        y0, y1 = (dist - origin * np.cos(angle)) / np.sin(angle)
+        ax[2].plot(origin, (y0, y1), '-r')
+    ax[2].set_xlim(origin)
+    ax[2].set_ylim((img.shape[0], 0))
+    ax[2].set_axis_off()
+    ax[2].set_title('Detected lines')
+
+
+def plot_img_canny_hough(img, edges, lines, plot_hough):
+    plt.figure(figsize=(15, 15))
+
+    plt.subplot(131)
+    plt.imshow(img, cmap=plt.cm.gray)
+    plt.title('Input image')
+
+    plt.subplot(132)
+    plt.imshow(edges,
+               cmap=plt.cm.gray
+               )
+    plt.title('Canny edges')
+
+    if plot_hough:
+        plt.subplot(133)
+        plt.imshow(edges * 0)
+
+        for line in lines:
+            p0, p1 = line
+            plt.plot((p0[0], p1[0]), (p0[1], p1[1]))
+
+        plt.title('Hough')
+        plt.axis('image')
+        plt.show()
+
+
+
 
 
