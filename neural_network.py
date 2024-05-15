@@ -45,7 +45,9 @@ def load_nn(path):
     return model
 
 
-def train_nn(n_epochs, learning_rate, incision_dataset, train_dataloader, val_dataloader, train_size, val_size, device, path_func: Callable[[float], str]):
+def train_nn(n_epochs, learning_rate, incision_dataset, train_dataloader, val_dataloader,
+             train_size, val_size, device, path_func: Callable[[float], str]):
+
     model = ConvNet().to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)

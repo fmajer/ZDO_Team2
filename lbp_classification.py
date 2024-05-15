@@ -3,7 +3,7 @@ from skimage import feature
 from skimage.transform import resize
 import numpy as np
 import cv2
-from utilities import train_classifiers, load_classifier
+from utilities import train_classifiers
 
 
 class LocalBinaryPatterns:
@@ -31,14 +31,13 @@ class LocalBinaryPatterns:
 def train_lbp_classifier(train_dataset, val_dataset, path_to_model):
     radius = 5
     n_points = 10 * radius
-
     desc = LocalBinaryPatterns(n_points, radius)
 
+    # Get LBP features for training and validation datasets
     x_train_lbp, y_train, x_val_lbp, y_val = get_lbp_features(desc, train_dataset, val_dataset)
 
     # Get best classifier based on accuracy and get its accuracy
     classifiers = train_classifiers(x_train_lbp, y_train, x_val_lbp, y_val)
-
     best_classifier = max(classifiers, key=lambda x: x[1])
     print(f"\nBest classifier: {best_classifier[0]} with accuracy: {best_classifier[1]}\n")
 
@@ -52,26 +51,24 @@ def train_lbp_classifier(train_dataset, val_dataset, path_to_model):
         pickle.dump(best_classifier[0], f)
 
 
-def get_lbp_classifier_accuracy(val_dataset, path_to_model):
-    x_val_hog, y_val = get_lbp_features(val_dataset, val_dataset)[2:]
-
-    classifier = load_classifier(path_to_model)
-
-    return classifier.score(x_val_hog, y_val)
+def get_lbp_classifier_accuracy(val_dataset, classifier):
+    x_val_lbp, y_val = get_lbp_features(LocalBinaryPatterns(50, 5), None, val_dataset)[2:]
+    return classifier.score(x_val_lbp, y_val)
 
 
 def get_lbp_features(desc, train_dataset, val_dataset):
     x_train_lbp, y_train = [], []
     x_val_lbp, y_val = [], []
 
-    for i in range(len(train_dataset)):
-        img, _, n_stitches = train_dataset.__getitem__(i)
-        resized_img = resize(img, (50, 160)).astype('uint8') * 255
-        gray = cv2.cvtColor(resized_img, cv2.COLOR_RGB2GRAY)
-        hist = desc.describe(gray)
+    if train_dataset is not None:
+        for i in range(len(train_dataset)):
+            img, _, n_stitches = train_dataset.__getitem__(i)
+            resized_img = resize(img, (50, 160)).astype('uint8') * 255
+            gray = cv2.cvtColor(resized_img, cv2.COLOR_RGB2GRAY)
+            hist = desc.describe(gray)
 
-        x_train_lbp.append(hist)
-        y_train.append(n_stitches)
+            x_train_lbp.append(hist)
+            y_train.append(n_stitches)
 
     for i in range(len(val_dataset)):
         img, _, n_stitches = val_dataset.__getitem__(i)
@@ -82,5 +79,4 @@ def get_lbp_features(desc, train_dataset, val_dataset):
         x_val_lbp.append(hist)
         y_val.append(n_stitches)
 
-    # plot_img_and_hog(resized_img, features[1])
     return x_train_lbp, y_train, x_val_lbp, y_val
