@@ -54,7 +54,7 @@ train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
 val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
 # Get data sample with specified id
-image_id = 66
+image_id = 5
 img, mask, n_stitches = incision_dataset.__getitem__(image_id)
 
 # Initialize device
@@ -90,6 +90,7 @@ elif check_accuracy:
     print(f"HOG+LBP classifier - accuracy: {get_hog_lbp_classifier_accuracy(val_dataset, hog_lbp) * 100:.2f}%")
 
 else:
+    # plt.imshow(img.squeeze().permute(1, 2, 0).numpy())
     plt.imshow(img)
     plt.show()
 
