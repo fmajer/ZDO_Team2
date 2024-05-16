@@ -55,15 +55,17 @@ def hough_vert_edge_detect(img):
     edges = edges - long_hor_edges
 
     kernel = np.ones((2, 2), np.uint8)
-    edges = cv2.dilate(edges, kernel, iterations=1)
+    edges = cv2.dilate(edges, kernel, iterations=2)
     edges = cv2.erode(edges, kernel, iterations=1)
+    edges = cv2.medianBlur(edges, 3)
 
     # lines = probabilistic_hough_line(edges, threshold=10, line_length=20, line_gap=7)
+    lines = None
 
     tested_angles = np.linspace(np.deg2rad(-7), np.deg2rad(7), 360, endpoint=False)
     h, theta, d = skimage.transform.hough_line(edges, theta=tested_angles)
 
-    plot_img_canny_hough(img, edges, lines=None, plot_hough=False)
+    plot_img_canny_hough(img, edges, lines)
     plt.show()
 
     plot_hough_lines(img, h, theta, d)
@@ -83,7 +85,7 @@ def find_representative_lines(edges, h, theta, d):
             if distance[0] < distance_threshold:
                 close_lines.append((i, j))
 
-    # dál to nemám a stejně to asi nebude fungovat
+    # nedodelane a nefunkcni, opet by se muselo nastavovat hodne parametru, co bych pak fungovalo jen pro par obrazku
 
 
 def plot_hough_lines(img, h, theta, d):
@@ -113,10 +115,10 @@ def plot_hough_lines(img, h, theta, d):
     ax[2].set_title('Detected lines')
 
 
-def plot_img_canny_hough(img, edges, lines, plot_hough):
-    plt.figure(figsize=(15, 15))
+def plot_img_canny_hough(img, edges, lines):
+    plt.figure(figsize=(8, 4))
 
-    if plot_hough:
+    if lines is not None:
         plt.subplot(131)
         plt.imshow(img, cmap=plt.cm.gray)
         plt.title('Input image')

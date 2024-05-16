@@ -39,9 +39,6 @@ check_accuracy = False
 incision_dataset = IncisionDataset(xml_file="data/annotations.xml", image_dir="data/",
                                    transform=data_transform if train_nn_param else None)
 
-# Plot some images
-# plot_a_lot_of_images(incision_dataset)
-
 # Split dataset into training and validation
 # seed = random.randint(0, 10000)
 seed = 100
@@ -57,7 +54,7 @@ train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
 val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
 # Get data sample with specified id
-image_id = 5
+image_id = 60
 img, mask, n_stitches = incision_dataset.__getitem__(image_id)
 
 # Initialize device
@@ -65,7 +62,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Train, check accuracy or predict for given images
 if train_nn_param:
-    n_epochs = 5
+    n_epochs = 500
     learning_rate = 0.001
     path_to_nn_func: Callable[[float], str] = lambda x: f"trained_models/{x:.2f}_neural_network_seed_{seed}.pth"  # noqa: E731
     train_nn(n_epochs, learning_rate, incision_dataset, train_dataloader,
@@ -86,7 +83,6 @@ elif check_accuracy:
     lbp = load_classifier(path_to_lbp)
     hog_lbp = load_classifier(path_to_hog_lbp)
 
-    # Try various detection methods
     print(f"Edge detector - accuracy: {calculate_accuracy(val_dataset, detect_edges) * 100:.2f}%")
     print(f"Neural network - accuracy: {calculate_accuracy(val_dataset, nn.predict) * 100:.2f}%")
     print(f"HOG classifier - accuracy: {get_hog_classifier_accuracy(val_dataset, hog) * 100:.2f}%")
@@ -94,6 +90,9 @@ elif check_accuracy:
     print(f"HOG+LBP classifier - accuracy: {get_hog_lbp_classifier_accuracy(val_dataset, hog_lbp) * 100:.2f}%")
 
 else:
+    plt.imshow(img)
+    plt.show()
+
     path_to_nn = glob(f"trained_models/*_neural_network_seed_{seed}.pth")[0]
     path_to_hog = "trained_models/trained_hog_classifier.pkl"
     nn = load_nn(path_to_nn)
@@ -103,6 +102,5 @@ else:
     hog_stitches_pred = hog_predict(img, hog)
     print(f"Neural network prediction: {nn_stitches_pred} stitches")
     print(f"HOG classifier prediction: {hog_stitches_pred} stitches")
-
-    # edges_stitches_pred = detect_edges(copy.deepcopy(img))
-    # hough_vert_edge_detect(img) # nefunkci
+    print(f"Edge detector prediction: {detect_edges(copy.deepcopy(img))} stitches")
+    # hough_vert_edge_detect(img)
