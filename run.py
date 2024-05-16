@@ -8,7 +8,7 @@ from hog_lbp_classification import train_lbp_hog_classifier, get_hog_lbp_classif
 from neural_network import train_nn, load_nn
 from hog_classification import train_hog_classifier, get_hog_classifier_accuracy, hog_predict
 from lbp_classification import train_lbp_classifier, get_lbp_classifier_accuracy
-from utilities import calculate_accuracy, load_classifier, plot_a_lot_of_images
+from utilities import calculate_accuracy, load_classifier
 from edge_detector import detect_edges, hough_vert_edge_detect
 import random
 import copy
