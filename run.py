@@ -54,7 +54,7 @@ train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
 val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
 # Get data sample with specified id
-image_id = 60
+image_id = 66
 img, mask, n_stitches = incision_dataset.__getitem__(image_id)
 
 # Initialize device
