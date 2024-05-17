@@ -1,8 +1,11 @@
 from typing import Callable
+from matplotlib import pyplot as plt
 import torch
 import torch.nn as nn
 from torchvision import transforms
 import copy
+
+from tqdm import tqdm
 
 
 class ConvNet(nn.Module):
@@ -45,18 +48,18 @@ def load_nn(path):
     return model
 
 
-def train_nn(n_epochs, learning_rate, incision_dataset, train_dataloader, val_dataloader,
-             train_size, val_size, device, path_func: Callable[[float], str]):
-
+def train_nn(
+    n_epochs, learning_rate, incision_dataset, train_dataloader, val_dataloader, train_size, val_size, device, path_func: Callable[[float], str]
+):
     model = ConvNet().to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    n_images = 5
+    # n_images = 5
     # train_on_n_images(n_epochs, n_images, incision_dataset, optimizer, model, criterion)
     # validate_on_n_images(n_images, incision_dataset, model)
 
-    best_m, accuracy = train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader, optimizer, model, criterion)
+    best_m, accuracy = train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader, optimizer, device, model, criterion)
 
     torch.save(best_m.state_dict(), path_func(accuracy))
     # total_params = sum(p.numel() for p in model.parameters())
@@ -90,14 +93,36 @@ def validate_on_n_images(n_images, incision_dataset, model):
             print(f"Predicted: {outputs.squeeze().argmax()}, Actual: {n_stitches}")
 
 
-def train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader, optimizer, model, criterion):
+def train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader, optimizer, device, model, criterion):
     best_val_loss = float("inf")
     best_model = None
+    progress = tqdm(range(n_epochs))
 
-    for epoch in range(n_epochs):
+    fig1 = plt.figure()
+    ax1 = fig1.add_subplot()
+
+    fig2 = plt.figure()
+    ax2 = fig2.add_subplot()
+
+    fig3 = plt.figure()
+    ax3 = fig3.add_subplot()
+    ax = [ax1, ax2, ax3]
+
+    x_data = []
+    y1_data = []
+    y2_data = []
+    y3_data = []
+    y_data = [y1_data, y2_data, y3_data]
+    colors = ["red", "green", "blue"]
+
+    for epoch in progress:
         total_loss = 0
         for i, data in enumerate(train_dataloader):
             img, mask, n_stitches = data
+
+            img = img.to(device)
+            n_stitches = n_stitches.to(device)
+
             optimizer.zero_grad()
             outputs = model(img)
             loss = criterion(outputs, n_stitches)
@@ -106,8 +131,22 @@ def train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader
             optimizer.step()
             total_loss += loss.item()
 
-        val_loss, accuracy = validate_model(val_size, val_dataloader, model, criterion)
-        print(f"Epoch {epoch + 1}, train loss: {(total_loss / train_size):.5f}, " f"val loss: {val_loss:.5f}, accuracy: {accuracy * 100:.2f}%")
+        val_loss, accuracy = validate_model(val_size, val_dataloader, device, model, criterion)
+        progress.set_description(f"Train loss: {(total_loss / train_size):.5f}, Validation loss: {val_loss:.5f}, Accuracy: {accuracy:.2%}")
+
+        y_data[0].append(total_loss / train_size)
+        y_data[1].append(val_loss)
+        y_data[2].append(accuracy)
+        x_data.append(epoch)
+
+        if epoch % 25 == 0:
+            for i, data in enumerate(y_data):
+                ax[i].scatter(x_data, data, color=colors[i])
+                data.clear()
+
+            x_data.clear()
+
+        plt.pause(0.05)
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
@@ -117,12 +156,15 @@ def train_model(n_epochs, train_size, train_dataloader, val_size, val_dataloader
     return best_model, accuracy
 
 
-def validate_model(val_size, val_dataloader, model, criterion) -> tuple[float, float]:
+def validate_model(val_size, val_dataloader, device, model, criterion) -> tuple[float, float]:
     total_loss = 0
     correct_predictions = 0
     with torch.no_grad():
         for i, data in enumerate(val_dataloader):
             img, mask, n_stitches = data
+            img = img.to(device)
+            n_stitches = n_stitches.to(device)
+
             outputs = model(img)
             _, predicted = torch.max(outputs.data, 1)
             correct_predictions += (predicted == n_stitches).sum().item()
