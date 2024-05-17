@@ -66,7 +66,7 @@ if __name__ == "__main__" and DEBUG:
     # Split dataset into training and validation
     # seed = random.randint(0, 10000)
     seed = 100
-    train_percentage = 0.8
+    train_percentage = 0.9
     generator = torch.Generator().manual_seed(seed)
     train_size = int(train_percentage * incision_dataset.__len__())
     val_size = incision_dataset.__len__() - train_size
