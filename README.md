@@ -7,14 +7,14 @@ Cílem této práce bylo zhodnotit kvalitu chirurgického šití na základě zo
 ```
 https://github.com/fmajer/ZDO_Team2.git
 
-cd src
-
 pip install -r requirements.txt
 ```
 
 ## Spuštění
 
 ```
+cd src
+
 python run.py output.csv incision001.jpg incision005.png incision010.JPEG
 ```
 
