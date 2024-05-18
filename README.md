@@ -1,6 +1,6 @@
 # KKY/ZDO - Semestrální práce
 
-Cílem této práce bylo zhodnotit kvalitu chirurgického šití na základě zobrazení řezu a stehu. Kvalita šití byla hodnocena na základě detekovaného počtu stehů. V rámci řešení bylo navrženo několik algoritmů, přičemž nejlepších výsledků dosáhla konvoluční neuronová síť.
+Cílem této práce bylo zhodnotit kvalitu chirurgického šití na základě zobrazení řezu a stehu. Kvalita šití byla hodnocena na základě detekovaného počtu stehů. V rámci řešení bylo navrženo několik algoritmů, přičemž nejlepších výsledků dosáhla konvoluční neuronová síť, která je použita pro predikci počtu stehů při spuštění programu.
 
 ## Instalace
 
