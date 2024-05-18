@@ -15,7 +15,7 @@ from edge_detector import detect_edges
 import copy
 import matplotlib.pyplot as plt
 
-DEBUG = True
+DEBUG = False
 
 if __name__ == "__main__" and not DEBUG:
     csv_file, visual_mode, input_files = parse_arguments()
@@ -112,7 +112,7 @@ if __name__ == "__main__" and DEBUG:
 
     else:
         # Get data sample with specified id
-        image_id = 120
+        image_id = 20
         img, mask, n_stitches = incision_dataset.__getitem__(image_id)
 
         # plt.imshow(img.squeeze().permute(1, 2, 0).numpy())
