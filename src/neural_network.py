@@ -43,7 +43,10 @@ class ConvNet(nn.Module):
 
 def load_nn(path):
     model = ConvNet()
-    model.load_state_dict(torch.load(path))
+    try:
+        model.load_state_dict(torch.load(path))
+    except RuntimeError:
+        model.load_state_dict(torch.load(path, map_location=torch.device("cpu")))
     model.eval()
     return model
 

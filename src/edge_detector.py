@@ -116,7 +116,7 @@ def plot_hough_lines(img, h, theta, d):
     ax[1].set_title('Detected lines')
 
     fig.tight_layout(pad=1.0)
-    plt.savefig("plots/hough.pdf", format="pdf", bbox_inches="tight")
+    plt.savefig("../plots/hough.pdf", format="pdf", bbox_inches="tight")
 
 
 def plot_img_canny_hough(img, edges, lines):

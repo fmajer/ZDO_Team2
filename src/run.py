@@ -20,7 +20,7 @@ DEBUG = True
 if __name__ == "__main__" and not DEBUG:
     csv_file, visual_mode, input_files = parse_arguments()
     seed = 100
-    path_to_nn = sorted(glob(f"trained_models/*_neural_network_seed_{seed}.pth"), reverse=True)[0]
+    path_to_nn = sorted(glob(f"../trained_models/*_neural_network_seed_{seed}.pth"), reverse=True)[0]
     nn = load_nn(path_to_nn)
 
     with open(csv_file, "w") as f_csv:
@@ -53,10 +53,10 @@ if __name__ == "__main__" and DEBUG:
     # Parameters
     train_nn_param = False
     train_classifiers = False
-    check_accuracy = True
+    check_accuracy = False
 
     # Create dataset
-    incision_dataset = IncisionDataset(xml_file="data/annotations.xml", image_dir="data/", transform=data_transform if train_nn_param else None)
+    incision_dataset = IncisionDataset(xml_file="../data/annotations.xml", image_dir="../data/", transform=data_transform if train_nn_param else None)
 
     if train_nn_param:
         images = [incision_dataset.__getitem__(i)[0].squeeze().permute(1, 2, 0).numpy() for i in range(1, 6 * 9)]
@@ -76,9 +76,6 @@ if __name__ == "__main__" and DEBUG:
     batch_size = 128
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
-
-    # Get data sample with specified id
-    image_id = 5
     
     # Train, check accuracy or predict for given images
     if train_nn_param:
@@ -89,19 +86,19 @@ if __name__ == "__main__" and DEBUG:
         print(device.type)
         n_epochs = 2000
         learning_rate = 0.0002
-        path_to_nn_func: Callable[[float], str] = lambda x: f"trained_models/{x:.2f}_neural_network_seed_{seed}.pth"  # noqa: E731
+        path_to_nn_func: Callable[[float], str] = lambda x: f"../trained_models/{x:.2f}_neural_network_seed_{seed}.pth"  # noqa: E731
         train_nn(n_epochs, learning_rate, incision_dataset, train_dataloader, val_dataloader, train_size, val_size, device, path_to_nn_func)
 
     elif train_classifiers:
-        train_hog_classifier(train_dataset, val_dataset, "trained_models/trained_hog_classifier.pkl")
-        train_lbp_classifier(train_dataset, val_dataset, "trained_models/trained_lbp_classifier.pkl")
-        train_lbp_hog_classifier(train_dataset, val_dataset, "trained_models/trained_hog_lbp_classifier.pkl")
+        train_hog_classifier(train_dataset, val_dataset, "../trained_models/trained_hog_classifier.pkl")
+        train_lbp_classifier(train_dataset, val_dataset, "../trained_models/trained_lbp_classifier.pkl")
+        train_lbp_hog_classifier(train_dataset, val_dataset, "../trained_models/trained_hog_lbp_classifier.pkl")
 
     elif check_accuracy:
-        path_to_nn = sorted(glob(f"trained_models/*_neural_network_seed_{seed}.pth"), reverse=True)[0]
-        path_to_hog = "trained_models/trained_hog_classifier.pkl"
-        path_to_lbp = "trained_models/trained_lbp_classifier.pkl"
-        path_to_hog_lbp = "trained_models/trained_hog_lbp_classifier.pkl"
+        path_to_nn = sorted(glob(f"../trained_models/*_neural_network_seed_{seed}.pth"), reverse=True)[0]
+        path_to_hog = "../trained_models/trained_hog_classifier.pkl"
+        path_to_lbp = "../trained_models/trained_lbp_classifier.pkl"
+        path_to_hog_lbp = "../trained_models/trained_hog_lbp_classifier.pkl"
         nn = load_nn(path_to_nn)
         hog = load_classifier(path_to_hog)
         lbp = load_classifier(path_to_lbp)
@@ -114,12 +111,16 @@ if __name__ == "__main__" and DEBUG:
         print(f"HOG+LBP classifier - accuracy: {get_hog_lbp_classifier_accuracy(val_dataset, hog_lbp):.2%}")
 
     else:
+        # Get data sample with specified id
+        image_id = 120
+        img, mask, n_stitches = incision_dataset.__getitem__(image_id)
+
         # plt.imshow(img.squeeze().permute(1, 2, 0).numpy())
         plt.imshow(img)
         plt.show()
 
-        path_to_nn = sorted(glob(f"trained_models/*_neural_network_seed_{seed}.pth"), reverse=True)[0]
-        path_to_hog = "trained_models/trained_hog_classifier.pkl"
+        path_to_nn = sorted(glob(f"../trained_models/*_neural_network_seed_{seed}.pth"), reverse=True)[0]
+        path_to_hog = "../trained_models/trained_hog_classifier.pkl"
         nn = load_nn(path_to_nn)
         hog = load_classifier(path_to_hog)
 
@@ -128,3 +129,5 @@ if __name__ == "__main__" and DEBUG:
         print(f"Neural network prediction: {nn_stitches_pred} stitches")
         print(f"HOG classifier prediction: {hog_stitches_pred} stitches")
         print(f"Edge detector prediction: {detect_edges(copy.deepcopy(img))} stitches")
+        print(50 * "-")
+        print(f"Correct number of stitches: {n_stitches} stitches")

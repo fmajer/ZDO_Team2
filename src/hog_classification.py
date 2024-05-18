@@ -84,5 +84,5 @@ def plot_img_and_hog(img, hog_img):
     ax2.set_title("Histogram of Oriented Gradients")
 
     fig.tight_layout(pad=1.0)
-    plt.savefig("plots/hog.pdf", format="pdf", bbox_inches="tight")
+    plt.savefig("../plots/hog.pdf", format="pdf", bbox_inches="tight")
     plt.show()
