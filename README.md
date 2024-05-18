@@ -1,20 +1,21 @@
 # KKY/ZDO - Semestrální práce
 
-Cílem této práce bylo zhodnotit kvalitu chirurgického šití na základě zobrazení řezu a stehu. Kvalita šití byla hodnocena na základě detekovaného počtu stehů.
+Cílem této práce bylo zhodnotit kvalitu chirurgického šití na základě zobrazení řezu a stehu. Kvalita šití byla hodnocena na základě detekovaného počtu stehů. V rámci řešení bylo navrženo několik algoritmů, přičemž nejlepších výsledků dosáhla konvoluční neuronová síť.
 
 ## Instalace
 
-<!-- start:code block -->
+```
 git clone https://github.com/mfts/papermark.git
+
 cd papermark
 
-npm install
-<!-- end:code block -->
+pip install -r requirements.txt
+```
 
 ## Spuštění
 
-<!-- start:code block -->
+```
 
 npm run dev
 
-<!-- end:code block -->
+```
